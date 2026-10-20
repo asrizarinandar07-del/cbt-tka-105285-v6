@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { soalMatematika } from "./soalData.js";
+import { soalMatematika } from "./soalData";
 
 type TipeSoal = "pilihan_ganda" | "mcma" | "isian" | "benar_salah";
 
