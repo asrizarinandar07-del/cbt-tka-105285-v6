@@ -1,129 +1,241 @@
 "use client";
 import { useState, useEffect } from "react";
+import { soalMatematika } from "./soalData.js";
 
-type Soal = {
-  id: number;
-  mapel: string;
-  soal: string;
-  a: string;
-  b: string;
-  c: string;
-  d: string;
-  kunci: string;
-};
+type TipeSoal = "pilihan_ganda" | "mcma" | "isian" | "benar_salah";
 
-const SOAL_DATA: Soal[] = [
-  { id: 1, mapel: "Matematika", soal: "Hasil dari 12 x 15 adalah...", a: "150", b: "180", c: "165", d: "175", kunci: "b" },
-  { id: 2, mapel: "Matematika", soal: "Jika sebuah segitiga siku-siku memiliki alas 6 cm dan tinggi 8 cm, luasnya?", a: "24 cm2", b: "48 cm2", c: "14 cm2", d: "10 cm2", kunci: "a" },
-  { id: 3, mapel: "IPA", soal: "Alat pernapasan pada ikan adalah...", a: "Paru-paru", b: "Insang", c: "Trakea", d: "Kulit", kunci: "b" },
-  { id: 4, mapel: "IPA", soal: "Fotosintesis terjadi di bagian...", a: "Akar", b: "Batang", c: "Daun", d: "Bunga", kunci: "c" },
-  { id: 5, mapel: "Bahasa Indonesia", soal: "Sinonim kata 'Pintar' adalah...", a: "Bodoh", b: "Cerdas", c: "Malas", d: "Rajin", kunci: "b" },
-  { id: 6, mapel: "Bahasa Indonesia", soal: "Kalimat yang mengandung majas personifikasi:", a: "Angin berbisik di telingaku", b: "Dia sepintar Einstein", c: "Bunga itu merah", d: "Saya makan nasi", kunci: "a" },
-];
-
-export default function Home() {
+export default function Page() {
   const [login, setLogin] = useState(false);
   const [nama, setNama] = useState("");
-  const [kelas, setKelas] = useState("");
-  const [token, setToken] = useState("");
-  const [indexSoal, setIndexSoal] = useState(0);
-  const [jawaban, setJawaban] = useState<Record<number, string>>({});
-  const [waktu, setWaktu] = useState(3600);
+  const [kelas, setKelas] = useState("6A");
+  const [paket, setPaket] = useState("A");
+  const [soalList, setSoalList] = useState<any[]>([]);
+  const [index, setIndex] = useState(0);
+  const [jawaban, setJawaban] = useState<Record<number, any>>({});
   const [selesai, setSelesai] = useState(false);
+  const [waktu, setWaktu] = useState(60 * 60); // 60 menit
 
+  // Timer
   useEffect(() => {
     if (!login || selesai) return;
-    const timer = setInterval(() => {
+    const t = setInterval(() => {
       setWaktu((w) => {
-        if (w <= 1) { setSelesai(true); return 0; }
+        if (w <= 1) {
+          setSelesai(true);
+          return 0;
+        }
         return w - 1;
       });
     }, 1000);
-    return () => clearInterval(timer);
+    return () => clearInterval(t);
   }, [login, selesai]);
 
-  const handleLogin = () => {
-    if (token !== "105285") { alert("Token Salah! Token: 105285"); return; }
-    if (!nama || !kelas) { alert("Isi Nama dan Kelas!"); return; }
+  const mulaiUjian = () => {
+    if (!nama) {
+      alert("Isi Nama Siswa dulu Pak!");
+      return;
+    }
+    const paketData = (soalMatematika as any)[paket] || soalMatematika.A;
+    setSoalList(paketData);
     setLogin(true);
+    setIndex(0);
+    setJawaban({});
+    setSelesai(false);
+    setWaktu(60 * 60);
   };
 
-  const nilai = () => {
+  const pilihJawaban = (id: number, val: any) => {
+    setJawaban((prev) => ({ ...prev, [id]: val }));
+  };
+
+  const pilihMCMA = (id: number, opsi: string) => {
+    const cur = jawaban[id] || [];
+    let next;
+    if (cur.includes(opsi)) {
+      next = cur.filter((x: string) => x !== opsi);
+    } else {
+      next = [...cur, opsi];
+    }
+    setJawaban((prev) => ({ ...prev, [id]: next }));
+  };
+
+  const hitungNilai = () => {
     let benar = 0;
-    SOAL_DATA.forEach(s => { if (jawaban[s.id] === s.kunci) benar++; });
-    return Math.round((benar / SOAL_DATA.length) * 100);
+    soalList.forEach((s) => {
+      const j = jawaban[s.id];
+      if (!j) return;
+      if (s.tipe === "mcma") {
+        const kunci = s.kunci.sort().join("");
+        const jawab = (j as string[]).sort().join("");
+        if (kunci === jawab) benar++;
+      } else if (s.tipe === "isian") {
+        if (String(j).toLowerCase().trim() === String(s.kunci).toLowerCase().trim()) benar++;
+      } else {
+        if (j === s.kunci) benar++;
+      }
+    });
+    return Math.round((benar / soalList.length) * 100);
   };
 
   const formatWaktu = (detik: number) => {
     const m = Math.floor(detik / 60);
     const s = detik % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
-
-  if (selesai) {
-    return (
-      <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-green-600">Ujian Selesai!</h1>
-          <p className="mt-2">UPT SPF SD Inpres 105285</p>
-          <p className="mt-4 text-lg">Nama: {nama}</p>
-          <p>Kelas: {kelas}</p>
-          <p className="text-5xl font-bold my-6 text-blue-600">{nilai()}</p>
-          <button onClick={() => location.reload()} className="bg-blue-600 text-white px-6 py-2 rounded-lg">Ulangi</button>
-        </div>
-      </div>
-    );
-  }
 
   if (!login) {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-          <h1 className="text-2xl font-bold text-center text-blue-700">CBT TKA 105285 V6</h1>
-          <p className="text-center font-bold mt-1 text-gray-700">UPT SPF SD INPRES 105285</p>
-          <p className="text-center text-sm text-gray-500 mb-6">Ujian Berbasis Komputer</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+          <h1 className="text-2xl font-bold text-center text-blue-700 mb-2">CBT TKA 105285</h1>
+          <p className="text-center text-gray-600 mb-6 text-sm">SD INPRES 105285 - Ujian Standar TKA</p>
+          
           <div className="space-y-4">
-            <input value={nama} onChange={e=>setNama(e.target.value)} placeholder="Nama Lengkap" className="w-full border p-3 rounded-lg" />
-            <input value={kelas} onChange={e=>setKelas(e.target.value)} placeholder="Kelas (Contoh: 6A)" className="w-full border p-3 rounded-lg" />
-            <input value={token} onChange={e=>setToken(e.target.value)} placeholder="Token Ujian: 105285" className="w-full border p-3 rounded-lg" />
-            <button onClick={handleLogin} className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700">MASUK UJIAN</button>
-            <p className="text-xs text-center text-gray-400">Token default: 105285</p>
+            <div>
+              <label className="text-sm font-semibold">Nama Siswa</label>
+              <input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Contoh: Kesya" className="w-full border rounded-lg p-2.5 mt-1" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold">Kelas</label>
+              <select value={kelas} onChange={(e) => setKelas(e.target.value)} className="w-full border rounded-lg p-2.5 mt-1">
+                <option>6A</option><option>6B</option><option>6C</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-semibold">Mapel</label>
+              <select className="w-full border rounded-lg p-2.5 mt-1 bg-gray-100" disabled>
+                <option>Matematika - 90 Soal (3 Paket)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">B. Indonesia akan menyusul Bagian 2</p>
+            </div>
+            <div>
+              <label className="text-sm font-semibold">Pilih Paket Soal</label>
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {["A","B","C"].map((p) => (
+                  <button key={p} onClick={() => setPaket(p)} className={`p-3 rounded-lg border-2 font-bold ${paket===p ? "bg-blue-600 text-white border-blue-600" : "bg-white border-gray-300"}`}>PAKET {p}<div className="text-xs font-normal">30 Soal</div></button>
+                ))}
+              </div>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-800">
+              <b>Standar TKA:</b><br/>• 20 Pilihan Ganda<br/>• 4 PG Kompleks (MCMA - Pilih 2)<br/>• 3 Isian Singkat<br/>• 3 Benar-Salah
+            </div>
+            <button onClick={mulaiUjian} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">MULAI UJIAN PAKET {paket}</button>
           </div>
         </div>
       </div>
     );
   }
 
-  const soal = SOAL_DATA[indexSoal];
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow p-4 flex justify-between items-center">
-        <div><p className="font-bold">UPT SPF SD Inpres 105285</p><p className="text-sm">{nama} - {kelas}</p></div>
-        <div className="bg-red-100 text-red-600 px-4 py-2 rounded-full font-bold">{formatWaktu(waktu)}</div>
-      </div>
-      <div className="max-w-4xl mx-auto p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="md:col-span-3 bg-white p-6 rounded-xl shadow">
-          <p className="text-sm text-blue-600 font-bold">{soal.mapel} - Soal {indexSoal+1} dari {SOAL_DATA.length}</p>
-          <h2 className="text-lg font-semibold my-4">{soal.soal}</h2>
-          <div className="space-y-3">
-            {["a","b","c","d"].map(opt => (
-              <label key={opt} className={`block border p-3 rounded-lg cursor-pointer ${jawaban[soal.id]===opt ? "bg-blue-100 border-blue-500" : "hover:bg-gray-50"}`}>
-                <input type="radio" name={`soal-${soal.id}`} checked={jawaban[soal.id]===opt} onChange={()=>setJawaban({...jawaban, [soal.id]:opt})} className="mr-3" />
-                {opt.toUpperCase()}. {(soal as any)[opt]}
-              </label>
-            ))}
+  if (selesai) {
+    const nilai = hitungNilai();
+    return (
+      <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
+          <h2 className="text-2xl font-bold text-green-700">Ujian Selesai!</h2>
+          <p className="mt-2">{nama} - {kelas} - Paket {paket}</p>
+          <div className="mt-6 bg-green-600 text-white rounded-xl p-6">
+            <div className="text-sm">NILAI AKHIR</div>
+            <div className="text-5xl font-bold mt-2">{nilai}</div>
+            <div className="text-sm mt-1">{nilai >= 75 ? "LULUS - Mantap!" : "Perlu Belajar Lagi"}</div>
           </div>
-          <div className="flex justify-between mt-6">
-            <button disabled={indexSoal===0} onClick={()=>setIndexSoal(i=>i-1)} className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">Sebelumnya</button>
-            {indexSoal < SOAL_DATA.length-1 ? <button onClick={()=>setIndexSoal(i=>i+1)} className="px-4 py-2 bg-blue-600 text-white rounded">Selanjutnya</button> : <button onClick={()=>setSelesai(true)} className="px-6 py-2 bg-green-600 text-white rounded font-bold">SELESAI</button>}
+          <div className="mt-4 text-sm text-left bg-gray-50 p-3 rounded">
+            <div>Benar: {Math.round((nilai/100)*soalList.length)} dari {soalList.length} soal</div>
+            <div>Waktu sisa: {formatWaktu(waktu)}</div>
+          </div>
+          <button onClick={() => {setLogin(false); setSelesai(false);}} className="w-full mt-6 bg-gray-800 text-white py-2.5 rounded-lg">Kembali ke Login</button>
+        </div>
+      </div>
+    );
+  }
+
+  const soal = soalList[index];
+  if (!soal) return null;
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <div className="bg-white shadow p-3 flex justify-between items-center sticky top-0 z-10">
+        <div className="font-bold text-blue-700 text-sm">{nama} | Paket {paket} | Soal {index+1}/{soalList.length}</div>
+        <div className="flex gap-3 items-center">
+          <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">{formatWaktu(waktu)}</div>
+          <button onClick={() => setSelesai(true)} className="bg-green-600 text-white px-3 py-1 rounded text-sm">Selesai</button>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="md:col-span-3 bg-white rounded-xl shadow p-6">
+          <div className="flex gap-2 mb-3">
+            <span className={`text-xs px-2 py-1 rounded font-bold ${soal.tipe==="pilihan_ganda"?"bg-blue-100 text-blue-700": soal.tipe==="mcma"?"bg-purple-100 text-purple-700": soal.tipe==="isian"?"bg-orange-100 text-orange-700":"bg-green-100 text-green-700"}`}>{soal.tipe.toUpperCase()}</span>
+            <span className="text-xs text-gray-500">No. {soal.id}</span>
+          </div>
+          <h3 className="text-lg font-semibold mb-6 leading-relaxed">{soal.soal}</h3>
+
+          {soal.tipe === "pilihan_ganda" && (
+            <div className="space-y-2">
+              {Object.entries(soal.opsi).map(([k, v]: any) => (
+                <button key={k} onClick={() => pilihJawaban(soal.id, k)} className={`w-full text-left border-2 p-3 rounded-lg flex gap-3 ${jawaban[soal.id]===k ? "border-blue-600 bg-blue-50" : "border-gray-200"}`}>
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${jawaban[soal.id]===k ? "bg-blue-600 text-white" : "bg-gray-200"}`}>{k}</span>
+                  <span>{v as string}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {soal.tipe === "mcma" && (
+            <div className="space-y-2">
+              <p className="text-xs text-purple-700 mb-2 font-semibold">* Centang 2 jawaban yang benar!</p>
+              {Object.entries(soal.opsi).map(([k, v]: any) => {
+                const checked = (jawaban[soal.id] || []).includes(k);
+                return (
+                  <button key={k} onClick={() => pilihMCMA(soal.id, k)} className={`w-full text-left border-2 p-3 rounded-lg flex gap-3 ${checked ? "border-purple-600 bg-purple-50" : "border-gray-200"}`}>
+                    <span className={`w-6 h-6 rounded border-2 flex items-center justify-center ${checked ? "bg-purple-600 border-purple-600 text-white" : "border-gray-300"}`}>{checked ? "✓" : ""}</span>
+                    <span className="font-bold">{k}.</span><span>{v as string}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {soal.tipe === "isian" && (
+            <div>
+              <input value={jawaban[soal.id] || ""} onChange={(e) => pilihJawaban(soal.id, e.target.value)} placeholder="Ketik jawaban angka/kata di sini..." className="w-full border-2 border-orange-300 rounded-lg p-3 focus:border-orange-500 outline-none" />
+              <p className="text-xs text-gray-500 mt-2">Contoh: 120 atau 0,75 atau malas</p>
+            </div>
+          )}
+
+          {soal.tipe === "benar_salah" && (
+            <div className="space-y-2">
+              {Object.entries(soal.opsi).map(([k, v]: any) => (
+                <button key={k} onClick={() => pilihJawaban(soal.id, k)} className={`w-full text-left border-2 p-3 rounded-lg ${jawaban[soal.id]===k ? "border-green-600 bg-green-50" : "border-gray-200"}`}>
+                  <span className="font-bold">{k}. {v as string}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between mt-8">
+            <button disabled={index===0} onClick={() => setIndex(index-1)} className="px-5 py-2 rounded-lg bg-gray-200 disabled:opacity-50">← Sebelumnya</button>
+            {index < soalList.length-1 ? (
+              <button onClick={() => setIndex(index+1)} className="px-5 py-2 rounded-lg bg-blue-600 text-white">Selanjutnya →</button>
+            ) : (
+              <button onClick={() => setSelesai(true)} className="px-5 py-2 rounded-lg bg-green-600 text-white">Selesai & Lihat Nilai</button>
+            )}
           </div>
         </div>
-        <div className="bg-white p-4 rounded-xl shadow h-fit">
-          <p className="font-bold mb-3">Navigasi Soal</p>
+
+        <div className="bg-white rounded-xl shadow p-4 h-fit">
+          <h4 className="font-bold text-sm mb-3">Navigasi Soal Paket {paket}</h4>
           <div className="grid grid-cols-5 gap-2">
-            {SOAL_DATA.map((s, i) => (
-              <button key={s.id} onClick={()=>setIndexSoal(i)} className={`p-2 rounded text-sm font-bold ${i===indexSoal ? "bg-blue-600 text-white" : jawaban[s.id] ? "bg-green-200" : "bg-gray-100"}`}>{i+1}</button>
-            ))}
+            {soalList.map((s, i) => {
+              const sudah = jawaban[s.id] !== undefined && (Array.isArray(jawaban[s.id]) ? jawaban[s.id].length > 0 : String(jawaban[s.id]).length > 0);
+              return (
+                <button key={s.id} onClick={() => setIndex(i)} className={`h-9 rounded text-sm font-bold ${i===index ? "bg-blue-600 text-white" : sudah ? "bg-green-500 text-white" : "bg-gray-200"}`}>{i+1}</button>
+              );
+            })}
+          </div>
+          <div className="mt-4 text-xs space-y-1">
+            <div className="flex gap-2 items-center"><div className="w-3 h-3 bg-blue-600 rounded"></div> Sedang dikerjakan</div>
+            <div className="flex gap-2 items-center"><div className="w-3 h-3 bg-green-500 rounded"></div> Sudah dijawab</div>
+            <div className="flex gap-2 items-center"><div className="w-3 h-3 bg-gray-200 rounded"></div> Belum dijawab</div>
           </div>
         </div>
       </div>
