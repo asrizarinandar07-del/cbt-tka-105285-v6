@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "CBT TKA 105285 V6 - SMP Negeri 2 Kisaran",
+ title: "CBT TKA 105285 V6 - UPT SPF SD INPRES 105285",
   description: "Sistem Ujian CBT Kelas 6",
 };
 
