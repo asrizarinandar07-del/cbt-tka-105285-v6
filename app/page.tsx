@@ -33,17 +33,51 @@ export default function Page() {
   const formatWaktu = (d:number) => `${Math.floor(d/60).toString().padStart(2,"0")}:${(d%60).toString().padStart(2,"0")}`;
   useEffect(() => { if(selesai && soalList.length>0){ const {nilai, benar} = hitungNilai(); const baru: Rekap = { id: Date.now().toString(), nama, kelas, mapel, paket, nilai, benar, tanggal: new Date().toLocaleString("id-ID") }; saveRekap([baru, ...rekapNilai].slice(0,200)); } }, [selesai]);
   const loginGuru = () => { if(guruUser==="guru105285" && guruPass==="TKA2025"){ setRole("guru_dashboard"); } else { alert("Salah! User: guru105285 Pass: TKA2025"); } };
+const RenderStimulus = ({ text }: { text: string }) => {
+  if (!text) return null;
+  const isImage = text.startsWith("http");
+  const lower = text.toLowerCase();
+  const isPanen = lower.includes('panen raya') || (lower.includes('padi') && lower.includes('jagung'));
 
-  const RenderStimulus = ({ text }: { text: string }) => {
-    if (!text) return null;
-    const isImage = text.startsWith("http");
+  if (isImage) {
     return (
       <div className="mb-5 bg-[#eef6ff] border-l-[5px] border-blue-600 rounded-r-xl p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-2"><span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded">STIMULUS</span><span className="text-[11px] text-blue-700 font-bold">BACAAN / INFORMASI TKA 2025</span></div>
-        {isImage ? <img src={text} alt="Stimulus" className="max-w-full rounded-lg border"/> : <div className="text-[13.5px] leading-relaxed text-gray-800 whitespace-pre-wrap bg-white p-3.5 rounded-lg border">{text}</div>}
+        <div className="flex items-center gap-2 mb-2"><span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded">STIMULUS GAMBAR</span></div>
+        <img src={text} alt="Stimulus" className="max-w-full rounded-lg border" />
       </div>
     );
-  };
+  }
+
+  if (isPanen) {
+    const judul = text.split(/Tabel:/i)[0];
+    return (
+      <div className="mb-5 bg-[#eef6ff] border-l-[5px] border-blue-600 rounded-r-xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-2"><span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded">STIMULUS</span><span className="text-[10px] font-bold text-blue-800">BACAAN / TABEL TKA 2025</span></div>
+        <div className="bg-white p-3 rounded border">
+          <p className="text-[13.5px] font-medium mb-3 whitespace-pre-line">{judul}</p>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-400 text-[13px]">
+              <thead className="bg-blue-100"><tr><th className="border p-2">Jenis</th><th className="border p-2">Luas</th><th className="border p-2">Hasil/ha</th><th className="border p-2">Harga</th></tr></thead>
+              <tbody>
+                <tr><td className="border p-2">🌾 Padi</td><td className="border p-2 text-center">1,5 ha</td><td className="border p-2 text-center">6 ton</td><td className="border p-2 text-center">Rp5.000/kg</td></tr>
+                <tr className="bg-gray-50"><td className="border p-2">🌽 Jagung</td><td className="border p-2 text-center">1 ha</td><td className="border p-2 text-center">4 ton</td><td className="border p-2 text-center">Rp4.000/kg</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-2 text-[11px] bg-yellow-50 border px-2 py-1 rounded inline-block">💡 1 ton = 1000 kg | Total lahan 2,5 ha</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-5 bg-[#eef6ff] border-l-[5px] border-blue-600 rounded-r-xl p-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-2"><span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded">STIMULUS</span><span className="text-[10px] font-bold text-blue-800">BACAAN / INFORMASI TKA 2025</span></div>
+      <div className="text-[13.5px] leading-relaxed whitespace-pre-line bg-white p-3 rounded border">{text}</div>
+    </div>
+  );
+};
+  
 
   if(role==="menu"){ return (<div className="min-h-screen bg-gradient-to-br from-blue-800 to-indigo-900 flex items-center justify-center p-4"><div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center"><h1 className="text-2xl font-black text-blue-800">CBT TKA 105285</h1><p className="text-xs text-gray-600">VERSI STIMULUS STANDAR TKA 2025</p><div className="mt-6 space-y-3"><button onClick={()=>setRole("siswa")} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl">👨‍🎓 MASUK SISWA<br/><span className="text-xs font-normal">180 Soal + Stimulus</span></button><button onClick={()=>setRole("guru")} className="w-full bg-gray-800 text-white font-bold py-4 rounded-xl">👨‍🏫 LOGIN GURU</button></div><div className="mt-3 text-[11px] bg-blue-50 p-2 rounded">✅ Support: Teks Narasi, Infografis, Tabel, Diagram, Gambar</div></div></div>); }
   if(role==="guru"){ return (<div className="min-h-screen bg-gray-800 flex items-center justify-center p-4"><div className="bg-white rounded-xl p-6 w-full max-w-sm"><h2 className="font-black">Login Guru</h2><p className="text-xs text-gray-500 mb-3">guru105285 / TKA2025</p><input value={guruUser} onChange={e=>setGuruUser(e.target.value)} placeholder="Username" className="w-full border p-2.5 rounded-lg mb-2"/><input type="password" value={guruPass} onChange={e=>setGuruPass(e.target.value)} placeholder="Password" className="w-full border p-2.5 rounded-lg mb-3"/><button onClick={loginGuru} className="w-full bg-blue-700 text-white py-3 rounded-xl font-bold">LOGIN</button><button onClick={()=>setRole("menu")} className="w-full mt-2 bg-gray-200 py-2 rounded-lg text-sm">← Kembali</button></div></div>); }
